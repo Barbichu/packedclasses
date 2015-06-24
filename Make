@@ -1,0 +1,6 @@
+qsrc/packedclasses.ml4
+src/packedclasses.mllib
+theories/packedclasses.v
+theories/test.v
+-R theories packedclasses
+-I src
