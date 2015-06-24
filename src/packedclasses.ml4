@@ -35,7 +35,7 @@ let myintro id : unit Proofview.tactic = Goal.nf_enter (fun g ->
 
 let myintros ids = tclTHENLIST (List.map myintro ids)
 
-TACTIC EXTEND myplug_intro
+TACTIC EXTEND packedclasses_intro
 | [ "myintro" ident_list(ids) ] -> [ myintros ids ]
 END
 
@@ -45,13 +45,45 @@ let myprint name : unit =
   | ConstRef c ->
      begin match Global.body_of_constant c with
      | Some b -> Pp.(msg_info (Printer.pr_constr b))
-     | None -> Errors.errorlabstrm "myplug" Pp.(str "axiom")
+     | None -> Errors.errorlabstrm "packedclasses" Pp.(str "axiom")
      end
-  | _ -> Errors.errorlabstrm "myplug" Pp.(str "can't print this")
+  | _ -> Errors.errorlabstrm "packedclasses" Pp.(str "can't print this")
 ;;
 
-VERNAC COMMAND EXTEND Myplug_print CLASSIFIED AS QUERY
-| [ "Myprint" global(name) ] -> [ myprint name ]
+let newpackedstructure superclassname newclassname carrier args
+		       mixinname : unit = 
+  Pp.(msg_info ((str "Packing ") ++ (Libnames.pr_reference superclassname)));;
+   
+
+open G_rewrite
+open Vernacexpr
+
+type record_field = local_decl_expr with_instance with_priority with_notation
+
+let wit_record_field =
+ (Genarg.create_arg None "record_field" : record_field Genarg.uniform_genarg_type)
+
+let record_field = Pcoq.create_generic_entry "record_field" (Genarg.rawwit wit_record_field)
+
+open Pcoq
+
+GEXTEND Gram
+  GLOBAL: record_field;
+    record_field:
+    [ [ b = G_vernac.record_field -> b ] ];
+END
+
+
+VERNAC COMMAND EXTEND Packedclasses_print CLASSIFIED AS SIDEFF
+| [ "Pack" "Structure" global(superclassname) ident(newclassname) 
+	   binders(arguments)
+  ":=" ident_opt(mixinname) "{" record_field_list_sep(mixinfields,";") "}"] -> [ 
+    match List.rev arguments with
+    | [] -> Errors.errorlabstrm "packedclasses" Pp
+	    .(str "Please give at least one binder (the carrier).")
+    | carrier :: revargs ->
+       newpackedstructure superclassname newclassname
+			  carrier (List.rev revargs) mixinname]
 END
 
 (* vim: set filetype=ocaml foldmethod=marker: *)

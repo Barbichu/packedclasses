@@ -1,1 +1,1 @@
-Declare ML Module "myplug".
+Declare ML Module "packedclasses".
