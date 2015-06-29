@@ -50,9 +50,33 @@ let myprint name : unit =
   | _ -> Errors.errorlabstrm "packedclasses" Pp.(str "can't print this")
 ;;
 
+let parse_vernac = Pcoq.parse_string Pcoq.Vernac_.vernac;;
+
 let newpackedstructure superclassname newclassname carrier args
 		       mixinname : unit = 
-  Pp.(msg_info ((str "Packing ") ++ (Libnames.pr_reference superclassname)));;
+  let ghost_eval_expr x = Vernac.eval_expr (Loc.ghost, x) in
+  
+  let _ = Declaremods.start_module Modintern.interp_module_ast
+			   None newclassname
+			   [] (Vernacexpr.Check []) in
+  let _ = Record.definition_structure 
+	    (Vernacexpr.Structure,
+	     false,
+	     Decl_kinds.BiFinite, 
+	     (false, ),
+	     [],
+	     [],
+	     "mixin",
+	     None) in
+  let _ = Declaremods.end_module () in 
+  ()
+
+;;
+
+  (* ghost_eval_expr (parse_vernac "Module test.");; *)
+  (* ghost_eval_expr (Vernacexpr.VernacDefineModule (None, (Loc.ghost, newclassname),  *)
+  (* 						  [], Vernacexpr.Check [], []));; *)
+  (* Pp.(msg_info ((str "Packing ") ++ (Libnames.pr_reference superclassname)));; *)
    
 
 open G_rewrite
